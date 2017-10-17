@@ -1,0 +1,109 @@
+# Prototype on CiFar10
+# For quick calculation Need PC with CUDA
+from keras.datasets import cifar10
+from keras.models import Sequential
+from keras.layers import Dense, Dropout, Flatten
+from keras.layers import Convolution2D, MaxPooling2D
+from keras.optimizers import SGD
+from keras.utils import np_utils
+from keras.utils.vis_utils import plot_model
+from keras.callbacks import ModelCheckpoint
+
+# Size of Mini sample
+batch_size = 128
+
+# Number of Image classes
+nb_classes = 10
+
+# Number of Learning epochs
+nb_epoch = 200
+
+# Image size
+img_rows, img_cols = 32, 32
+
+# Number of Channels in the image: RGB
+img_channels = 3
+
+# Load Dataset
+(X_train, y_train), (X_test, y_test) = cifar10.load_data()
+print('X_train shape:', X_train.shape)
+print(X_train.shape[0], 'train samples')
+print(X_test.shape[0], 'test samples')
+
+# Convert tags to category
+Y_train = np_utils.to_categorical(y_train, nb_classes)
+Y_test = np_utils.to_categorical(y_test, nb_classes)
+
+# Create a Sequential model
+model = Sequential()
+
+# The First convolutional layer
+model.add(Convolution2D(32, (3, 3), padding='same', activation='relu', input_shape=(img_rows, img_cols, img_channels)))
+
+# The Second convolutional layer
+model.add(Convolution2D(32, (3, 3), activation='relu'))
+
+# The first Sub-sample layer
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+# The Dropout regularization layer
+model.add(Dropout(0.25))
+
+# The Third convolutional layer
+model.add(Convolution2D(64, (3, 3), padding='same', activation='relu'))
+
+# The Fourth convolutional layer
+model.add(Convolution2D(64, (3, 3), activation='relu'))
+
+# The second Sub-sample layer
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+# The Dropout regularization layer
+model.add(Dropout(0.25))
+
+# The Fifth convolutional layer
+model.add(Convolution2D(128, (3, 3), padding='same', activation='relu'))
+
+# The Sixth convolutional layer
+model.add(Convolution2D(128, (3, 3), activation='relu'))
+
+# The third Sub-sample layer
+model.add(MaxPooling2D(pool_size=(2, 2)))
+
+# The Dropout regularization layer
+model.add(Dropout(0.25))
+
+# The Data conversion layer from the 2D view to the Flat
+model.add(Flatten())
+
+# Allowed layer for classification
+model.add(Dense(512, activation='relu'))
+
+# The Dropout regularization layer
+model.add(Dropout(0.5))
+
+# Output full connector layer
+model.add(Dense(nb_classes, activation='softmax'))
+
+# Optimization options
+sgd = SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True)
+model.compile(loss='categorical_crossentropy',
+              optimizer=sgd,
+              metrics=['accuracy'])
+
+#Drawning model
+plot_model(model, to_file='model.png')
+
+# Data Normalization
+X_train = X_train.astype('float32') - 128
+X_test = X_test.astype('float32') - 128
+X_train /= 128
+X_test /= 128
+
+# Teach the model
+model.fit(X_train, Y_train,
+          batch_size=batch_size,
+          nb_epoch=nb_epoch,
+          validation_data=(X_test, Y_test),
+          shuffle=True,
+          callbacks=[ModelCheckpoint('weights/cifar.h5', save_best_only=False)])
